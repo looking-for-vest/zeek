@@ -309,7 +309,7 @@ public:
 
 	UID GetUID() const { return uid; }
 
-	const EncapsulationStack* GetEncapsulation() const
+	EncapsulationStack* GetEncapsulation() const
 		{ return encapsulation; }
 
 	void CheckFlowLabel(bool is_orig, uint32_t flow_label);
@@ -355,7 +355,7 @@ protected:
 	double inactivity_timeout;
 	RecordValPtr conn_val;
 	LoginConn* login_conn;	// either nil, or this
-	const EncapsulationStack* encapsulation; // tunnels
+	EncapsulationStack* encapsulation; // tunnels
 	int suppress_event;	// suppress certain events to once per conn.
 
 	unsigned int installed_status_timer:1;

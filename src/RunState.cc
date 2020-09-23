@@ -36,6 +36,7 @@ extern "C" {
 #include "iosource/PktDumper.h"
 #include "plugin/Manager.h"
 #include "broker/Manager.h"
+#include "packet_analysis/Manager.h"
 
 extern "C" {
 extern int select(int, fd_set *, fd_set *, fd_set *, struct timeval *);
@@ -209,11 +210,8 @@ void expire_timers()
 			zeek::detail::max_timer_expires - current_dispatched);
 	}
 
-void dispatch_packet(const Packet* pkt)
+void dispatch_packet(Packet* pkt, iosource::PktSrc* pkt_src)
 	{
-	if ( ! pkt->l2_valid )
-		return;
-
 	double t = run_state::pseudo_realtime ? check_pseudo_time(pkt) : pkt->time;
 
 	if ( ! zeek_start_network_time )
@@ -223,6 +221,12 @@ void dispatch_packet(const Packet* pkt)
 		if ( network_time_init )
 			event_mgr.Enqueue(network_time_init, Args{});
 		}
+
+	current_iosrc = pkt_src;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+	current_pktsrc = pkt_src;
+#pragma GCC diagnostic pop
 
 	// network_time never goes back.
 	update_network_time(zeek::detail::timer_mgr->Time() < t ? t : zeek::detail::timer_mgr->Time());
@@ -249,7 +253,7 @@ void dispatch_packet(const Packet* pkt)
 			}
 		}
 
-	sessions->NextPacket(t, pkt);
+	packet_mgr->ProcessPacket(pkt);
 	event_mgr.Drain();
 
 	if ( sp )
@@ -264,6 +268,12 @@ void dispatch_packet(const Packet* pkt)
 
 	if ( pseudo_realtime && ! first_wallclock )
 		first_wallclock = util::current_time(true);
+
+	current_iosrc = nullptr;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+	current_pktsrc = nullptr;
+#pragma GCC diagnostic pop
 	}
 
 void run_loop()
